@@ -60,17 +60,34 @@ m = len(datakeys)
 fileSeries = getOrganizedData(h5files)
 
 currencies = list(fileSeries.index.unique())
-for curr in currencies:
+for curr in currencies:    
     currSet = fileSeries.loc[curr][['exch','data']]
+    N = len(currSet)
     exchs = list(currSet['exch'])
-    mins = pd.Series([0]*len(currSet.iloc[0]['data']),index=currSet.iloc[0]['data'].index)
-    maxs = pd.Series([np.inf]*len(currSet.iloc[0]['data']))
+    mins = pd.DataFrame()
+    maxs = pd.DataFrame()
 
     #exchSpread = pd.DataFrame(pd.Series
-    for i in range(0,len(currSet)):
+    for i in range(0,N):
         #GetSpreads(currSet.iloc[i]['data'])
         currSet.iloc[i]['data'].set_index('timestamp', inplace=True)
-        mins = pd.DataFrame({'min':mins,'thisxchg':currSet.iloc[i]['data'][b'min']})
+        mins[currSet.iloc[i][0]] = currSet.iloc[i][1][b'min']
+        maxs[currSet.iloc[i][0]] = currSet.iloc[i][1][b'max']
+    
+    # TO DO: apply sum columns in measuring spread sizes in order to 
+    # see available market at the given price
+    # (taking the smaller of the two exchange's spreads)
+    market_discr = [[0 for i in range(0,N)] for j in range(0,N)]
+    if N > 1:
+        for i in range(0,N-1):
+            for j in range(i,N):
+                sprd_ij = maxs[exchs[i]]-mins[exchs[j]]
+                sprd_ij_size = -sum(sprd_ij[sprd_ij<0])
+                sprd_ji = maxs[exchs[j]]-mins[exchs[i]]
+                sprd_ji_size = -sum(sprd_ji[sprd_ji<0])
+                market_discr[i][j] = sprd_ij_size + sprd_ji_size
+
+
 
     # construct spreads and compare spreads, vols, etc. 
     # std dev by different chunks.
